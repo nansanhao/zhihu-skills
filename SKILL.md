@@ -1,6 +1,6 @@
 ---
 name: zhihu-skills
-description: 知乎自动化技能集合。支持认证登录、搜索查询、问题详情、邀请回答、撰写发布回答。当用户要求操作知乎（搜索、查看问题、回答问题、登录、查看邀请）时触发。
+description: 知乎自动化技能集合。支持认证登录、搜索查询、问题详情、邀请回答、撰写发布回答、撰写发布文章。当用户要求操作知乎（搜索、查看问题、回答问题、写文章、登录、查看邀请）时触发。
 metadata:
   openclaw:
     requires:
@@ -35,12 +35,12 @@ metadata:
 1. **认证相关**（"登录 / 检查登录 / 知乎登录"）→ 执行 `zhihu-auth` 技能。
 2. **搜索查询**（"搜索知乎 / 查找问题 / 搜关键词"）→ 执行 `zhihu-explore` 技能。
 3. **查看详情**（"看这个问题 / 查看问题详情"）→ 执行 `zhihu-explore` 技能。
-4. **作者操作**（"查看邀请回答 / 回答问题 / 发布回答"）→ 执行 `zhihu-author` 技能。
+4. **作者操作**（"查看邀请回答 / 回答问题 / 发布回答 / 写文章 / 发布文章"）→ 执行 `zhihu-author` 技能。
 
 ## 全局约束
 
 - 所有操作前应确认登录状态（通过 `check-login`）。
-- 发布回答操作必须经过用户确认后才能执行。
+- 发布回答和文章操作必须经过用户确认后才能执行。
 - 文件路径必须使用绝对路径。
 - CLI 输出为 JSON 格式，结构化呈现给用户。
 - 操作频率不宜过高，保持合理间隔。
@@ -67,7 +67,7 @@ metadata:
 
 ### zhihu-author — 作者操作
 
-查看邀请、撰写并发布回答。
+查看邀请、撰写并发布回答、撰写并发布文章。
 
 | 命令 | 功能 |
 |------|------|
@@ -75,6 +75,9 @@ metadata:
 | `cli.py write-answer --question-id ID --content-file path` | 撰写回答（不发布，供预览） |
 | `cli.py submit-answer` | 提交已编辑的回答 |
 | `cli.py answer --question-id ID --content-file path` | 一步到位撰写并发布 |
+| `cli.py write-article --title "标题" --content-file path` | 撰写文章（不发布，供预览） |
+| `cli.py submit-article` | 提交已编辑的文章 |
+| `cli.py article --title "标题" --content-file path` | 一步到位撰写并发布文章 |
 
 ## 快速开始
 
@@ -104,6 +107,14 @@ python scripts/cli.py write-answer \
 
 # 7. 确认发布
 python scripts/cli.py submit-answer
+
+# 8. 撰写文章（分步：填写 → 预览 → 确认）
+python scripts/cli.py write-article \
+  --title "文章标题" \
+  --content-file /tmp/zhihu_article.txt
+
+# 9. 确认发布文章
+python scripts/cli.py submit-article
 ```
 
 ## 失败处理

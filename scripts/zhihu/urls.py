@@ -14,6 +14,9 @@ INVITED_QUESTIONS_URL = "https://www.zhihu.com/creator/featured-question/invited
 # 写回答页
 ANSWER_URL_PREFIX = "https://www.zhihu.com/question"
 
+# 写文章页
+ARTICLE_WRITE_URL = "https://zhuanlan.zhihu.com/write"
+
 
 def make_question_url(question_id: str) -> str:
     """构建问题详情页 URL。"""
@@ -39,3 +42,8 @@ def make_search_url(keyword: str, search_type: str = "content") -> str:
 def make_user_profile_url(user_id: str) -> str:
     """构建用户主页 URL。"""
     return f"https://www.zhihu.com/people/{user_id}"
+
+
+def make_article_url(article_id: str) -> str:
+    """构建文章详情页 URL。"""
+    return f"https://zhuanlan.zhihu.com/p/{article_id}"

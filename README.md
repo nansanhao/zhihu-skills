@@ -28,7 +28,7 @@
 ## 特性
 
 - **纯 CDP 实现** — 不依赖 Selenium / Playwright，仅通过 WebSocket 直连 Chrome DevTools Protocol
-- **完整知乎工作流** — 登录认证、搜索内容、查看问题、撰写并发布回答
+- **完整知乎工作流** — 登录认证、搜索内容、查看问题、撰写并发布回答、撰写并发布文章
 - **分步发布机制** — 先填写后预览，确认再发布，安全的人机协作设计
 - **13 项反检测** — WebDriver 隐藏、UA 伪装、WebGL 指纹覆盖、Client Hints 一致性等
 - **跨平台适配** — 自动检测 macOS / Linux，生成对应的 UA、WebGL、Client Hints 配置
@@ -38,26 +38,26 @@
 ## 架构
 
 ```
-┌──────────────────────────────────────────┐
-│              CLI 入口 (cli.py)            │
-│      argparse → 子命令路由 → JSON 输出     │
-├──────────────────────────────────────────┤
-│           知乎业务层 (zhihu/)              │
-│  login │ search │ question │ answer │    │
-│                invitation                │
-│  types · urls · errors · selectors       │
-├──────────────────────────────────────────┤
-│         CDP 引擎 (cdp_engine/)            │
-│   Browser · Page · Element · CDPClient   │
-│         stealth · errors                 │
-├──────────────────────────────────────────┤
-│       Chrome 管理 (chrome_launcher.py)    │
-│     自动启动 · headless 检测 · 端口管理    │
-└──────────────────────────────────────────┘
++--------------------------------------------+
+|            CLI 入口 (cli.py)               |
+|     argparse -> 子命令路由 -> JSON 输出      |
++--------------------------------------------+
+|          知乎业务层 (zhihu/)                |
+|  login | search | question | answer |      |
+|  article | invitation                      |
+|  types · urls · errors · selectors         |
++--------------------------------------------+
+|          CDP 引擎 (cdp_engine/)            |
+|  Browser · Page · Element · CDPClient      |
+|  stealth · errors                          |
++--------------------------------------------+
+|      Chrome 管理 (chrome_launcher.py)      |
+|     自动启动 · headless 检测 · 端口管理       |
++--------------------------------------------+
               ↕ WebSocket (CDP)
-         ┌──────────────┐
-         │    Chrome     │
-         └──────────────┘
+          +--------------+
+          |    Chrome    |
+          +--------------+
 ```
 
 ## 安装
@@ -115,6 +115,14 @@ python scripts/cli.py write-answer \
 
 # 6. 确认后发布
 python scripts/cli.py submit-answer
+
+# 7. 撰写文章（填写到编辑器，不发布）
+python scripts/cli.py write-article \
+  --title "我的文章标题" \
+  --content-file /path/to/article.txt
+
+# 8. 确认后发布文章
+python scripts/cli.py submit-article
 ```
 
 ## 命令参考
@@ -138,6 +146,9 @@ python scripts/cli.py submit-answer
 | `write-answer` | 撰写回答，不发布 | `--question-id`, `--content-file` |
 | `submit-answer` | 提交已填写的回答 | — |
 | `answer` | 一步到位撰写并发布 | `--question-id`, `--content-file` |
+| `write-article` | 撰写文章，不发布 | `--title`, `--content-file` |
+| `submit-article` | 提交已填写的文章 | — |
+| `article` | 一步到位撰写并发布文章 | `--title`, `--content-file` |
 
 ### 退出码
 
@@ -180,6 +191,7 @@ zhihu-skills/
 │       ├── search.py          # 搜索
 │       ├── question.py        # 问题详情
 │       ├── answer.py          # 撰写/发布回答
+│       ├── article.py         # 撰写/发布文章
 │       ├── invitation.py      # 邀请回答
 │       ├── types.py           # 数据模型
 │       ├── urls.py            # URL 常量
@@ -204,6 +216,7 @@ zhihu-skills/
 | "搜索知乎" | zhihu-explore | `search` |
 | "看这个问题" | zhihu-explore | `question-detail` |
 | "回答这个问题" | zhihu-author | `write-answer` → `submit-answer` |
+| "写篇文章" | zhihu-author | `write-article` → `submit-article` |
 
 ## 致谢
 

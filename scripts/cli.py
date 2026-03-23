@@ -253,6 +253,65 @@ def cmd_answer_direct(args: argparse.Namespace) -> None:
         browser.close()
 
 
+def cmd_write_article(args: argparse.Namespace) -> None:
+    """撰写文章（只填写，不发布）。"""
+    from zhihu.article import write_article
+
+    with open(args.content_file, encoding="utf-8") as f:
+        content = f.read().strip()
+
+    if not content:
+        _output({"success": False, "error": "文章内容不能为空"}, exit_code=2)
+
+    browser, page = _connect(args)
+    try:
+        result = write_article(page, args.title, content, submit=False)
+        if result.get("success"):
+            _output(result)
+        else:
+            _output(result, exit_code=2)
+    finally:
+        browser.close()
+
+
+def cmd_submit_article(args: argparse.Namespace) -> None:
+    """提交已编辑的文章。"""
+    from zhihu.article import submit_article
+
+    browser, page = _connect_existing(args)
+    try:
+        result = submit_article(page)
+        if result.get("success"):
+            _output(result)
+        else:
+            _output(result, exit_code=2)
+    finally:
+        browser.close_page(page)
+        browser.close()
+
+
+def cmd_article_direct(args: argparse.Namespace) -> None:
+    """一步到位撰写并发布文章。"""
+    from zhihu.article import write_article
+
+    with open(args.content_file, encoding="utf-8") as f:
+        content = f.read().strip()
+
+    if not content:
+        _output({"success": False, "error": "文章内容不能为空"}, exit_code=2)
+
+    browser, page = _connect(args)
+    try:
+        result = write_article(page, args.title, content, submit=True)
+        if result.get("success"):
+            _output(result)
+        else:
+            _output(result, exit_code=2)
+    finally:
+        browser.close_page(page)
+        browser.close()
+
+
 # ========== 参数解析 ==========
 
 
@@ -316,6 +375,22 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_argument("--question-id", required=True, help="问题 ID")
     sub.add_argument("--content-file", required=True, help="回答内容文件路径")
     sub.set_defaults(func=cmd_answer_direct)
+
+    # write-article（只填写，不发布）
+    sub = subparsers.add_parser("write-article", help="撰写文章（不发布，供预览）")
+    sub.add_argument("--title", required=True, help="文章标题")
+    sub.add_argument("--content-file", required=True, help="文章内容文件路径")
+    sub.set_defaults(func=cmd_write_article)
+
+    # submit-article（提交文章）
+    sub = subparsers.add_parser("submit-article", help="提交已编辑的文章")
+    sub.set_defaults(func=cmd_submit_article)
+
+    # article（一步到位）
+    sub = subparsers.add_parser("article", help="一步到位撰写并发布文章")
+    sub.add_argument("--title", required=True, help="文章标题")
+    sub.add_argument("--content-file", required=True, help="文章内容文件路径")
+    sub.set_defaults(func=cmd_article_direct)
 
     return parser
 
