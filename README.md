@@ -76,7 +76,7 @@
 
 ```bash
 # 1. 下载并解压（以 v0.1.1 为例）
-tar -xzf zhihu-skills-v0.1.1.tar.gz
+unzip zhihu-skills-v0.1.1.zip
 cd zhihu-skills
 
 # 2. 直接运行，无需额外安装

@@ -1,9 +1,6 @@
 ---
 name: zhihu-author
-description: |
-  知乎作者操作技能。查看被邀请回答的问题、撰写并发布回答。
-  当用户要求查看邀请回答、回答问题、发布回答时触发。
-version: 0.1.1
+description: 知乎作者操作技能。查看被邀请回答的问题、撰写并发布回答。当用户要求查看邀请回答、回答问题、发布回答时触发。
 metadata:
   openclaw:
     requires:

@@ -1,9 +1,6 @@
 ---
 name: zhihu-auth
-description: |
-  知乎认证管理技能。检查登录状态、引导登录（扫码或手动）、等待登录完成。
-  当用户要求登录知乎、检查登录状态时触发。
-version: 0.1.1
+description: 知乎认证管理技能。检查登录状态、引导登录（扫码或手动）、等待登录完成。当用户要求登录知乎、检查登录状态时触发。
 metadata:
   openclaw:
     requires:
