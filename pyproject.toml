@@ -1,6 +1,6 @@
 [project]
 name = "zhihu-skills"
-version = "0.1.1"
+version = "0.1.2"
 description = "知乎自动化 Skills，基于 CDP 浏览器自动化"
 readme = "README.md"
 license = { text = "MIT" }
