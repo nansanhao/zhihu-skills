@@ -75,8 +75,8 @@
 前往 [Releases](https://github.com/nansanhao/zhihu-skills/releases) 下载最新版本的压缩包，已包含所有依赖环境，解压即用：
 
 ```bash
-# 1. 下载并解压（以 v1.0.0 为例）
-tar -xzf zhihu-skills-v1.0.0.tar.gz
+# 1. 下载并解压（以 v0.1.1 为例）
+tar -xzf zhihu-skills-v0.1.1.tar.gz
 cd zhihu-skills
 
 # 2. 直接运行，无需额外安装

@@ -3,7 +3,7 @@ name: zhihu-explore
 description: |
   知乎搜索与查询技能。搜索知乎内容、查看问题详情和回答列表。
   当用户要求搜索知乎、查看问题详情、查找关键词时触发。
-version: 1.0.0
+version: 0.1.1
 metadata:
   openclaw:
     requires:
