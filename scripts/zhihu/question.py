@@ -54,12 +54,28 @@ def get_question_detail(page, question_id: str) -> dict:
 
 def _extract_question_info(page, question_id: str) -> QuestionDetail:
     """从 DOM 提取问题信息。"""
+    # 先展开折叠的问题描述（如果有"显示全部"按钮）
+    page.evaluate("""
+    (() => {
+        const btn = document.querySelector('.QuestionRichText-more');
+        if (btn) btn.click();
+    })()
+    """)
+    time.sleep(0.5)
+
     js_code = """
     (() => {
         const title = document.querySelector('.QuestionHeader-title')
             ?.textContent?.trim() || '';
-        const detail = document.querySelector('.QuestionHeader-detail .RichText')
-            ?.textContent?.trim() || '';
+
+        // 知乎新版 DOM：.QuestionRichText .RichText
+        // 旧版兼容：.QuestionHeader-detail .RichText
+        const richTextEl = document.querySelector(
+            '.QuestionRichText .RichText'
+        ) || document.querySelector(
+            '.QuestionHeader-detail .RichText'
+        );
+        const detail = richTextEl?.textContent?.trim() || '';
 
         // 提取关注数、浏览量等
         const numberItems = document.querySelectorAll(

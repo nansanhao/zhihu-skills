@@ -71,6 +71,9 @@ def write_answer(page, question_id: str, content: str, submit: bool = False) -> 
     # 在编辑器中输入内容
     _fill_editor(page, content)
 
+    # 在发布设置面板中选择"包含 AI 辅助创作"
+    _select_ai_declaration(page)
+
     if submit:
         # 点击发布按钮
         return _click_submit(page, title)
@@ -309,6 +312,73 @@ def _fill_plain_text(page, content: str) -> None:
                 },
             )
             time.sleep(random.uniform(0.05, 0.15))
+
+
+def _select_ai_declaration(page) -> None:
+    """在发布设置面板中选择"包含 AI 辅助创作"创作声明。
+
+    知乎回答编辑器右侧有"发布设置"面板，其中"创作声明"是一个下拉选择框。
+    点击下拉框展开选项列表，然后点击"包含 AI 辅助创作"选项。
+    """
+    # 检查当前创作声明值
+    current = page.evaluate('''
+    (() => {
+        const labels = document.querySelectorAll("label");
+        for (const label of labels) {
+            if (label.textContent.includes("创作声明")) {
+                const btn = label.parentElement.querySelector(
+                    "button[role='combobox']"
+                );
+                if (btn) {
+                    const span = btn.querySelector("span");
+                    return span ? span.textContent.trim() : "";
+                }
+            }
+        }
+        return "";
+    })()
+    ''')
+
+    if current == "包含 AI 辅助创作":
+        logger.info("创作声明已为: %s，无需修改", current)
+        return
+
+    logger.info("当前创作声明: %s，需要切换为 AI 辅助创作", current or "未找到")
+
+    # 点击下拉框展开选项
+    page.evaluate('''
+    (() => {
+        const labels = document.querySelectorAll("label");
+        for (const label of labels) {
+            if (label.textContent.includes("创作声明")) {
+                const btn = label.parentElement.querySelector(
+                    "button[role='combobox']"
+                );
+                if (btn) { btn.click(); return true; }
+            }
+        }
+        return false;
+    })()
+    ''')
+    time.sleep(0.8)
+
+    # 在下拉选项中点击"包含 AI 辅助创作"
+    result = page.evaluate('''
+    (() => {
+        const options = document.querySelectorAll(
+            ".Select-option, [role='option']"
+        );
+        for (const opt of options) {
+            if (opt.textContent.trim() === "包含 AI 辅助创作") {
+                opt.click();
+                return "selected";
+            }
+        }
+        return "not_found";
+    })()
+    ''')
+    logger.info("选择 AI 辅助创作: %s", result)
+    time.sleep(0.3)
 
 
 def _click_submit(page, title: str) -> dict:
