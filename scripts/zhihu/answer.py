@@ -382,10 +382,17 @@ def _select_ai_declaration(page) -> None:
 
 
 def _click_submit(page, title: str) -> dict:
-    """点击提交按钮发布回答。"""
-    js_code = """
+    """点击提交按钮发布回答。
+
+    完整流程：
+    1. 点击"发布回答"按钮
+    2. 处理可能出现的确认弹窗（如 Markdown 格式确认）
+    3. 如果弹窗处理后仍未跳转，尝试再次点击发布
+    4. 轮询检查是否发布成功（URL 跳转到 /answer/）
+    """
+    # ---------- Step 1: 点击发布按钮 ----------
+    js_click_submit = """
     (() => {
-        // 查找提交按钮（用 includes 兼容零宽字符）
         const buttons = document.querySelectorAll('button');
         for (const btn of buttons) {
             const text = btn.textContent.trim();
@@ -398,7 +405,6 @@ def _click_submit(page, title: str) -> dict:
                 return 'disabled';
             }
         }
-        // 尝试 .AnswerForm 内的主按钮
         const primaryBtn = document.querySelector(
             '.AnswerForm button.Button--primary, '
             + '.AnswerForm button[type="submit"]'
@@ -410,7 +416,7 @@ def _click_submit(page, title: str) -> dict:
         return 'not_found';
     })()
     """
-    result = page.evaluate(js_code)
+    result = page.evaluate(js_click_submit)
     logger.info("点击发布按钮: %s", result)
 
     if result == "not_found":
@@ -419,22 +425,114 @@ def _click_submit(page, title: str) -> dict:
     if result == "disabled":
         return {"success": False, "error": "发布按钮不可用，可能内容为空"}
 
-    # 等待发布完成
-    time.sleep(5)
+    # ---------- Step 2: 等待并处理确认弹窗 ----------
+    # 知乎在粘贴 Markdown 内容后点击发布时，可能弹出"识别到特殊格式，
+    # 请确认是否将 Markdown 解析为正确格式"的 toast/弹窗，需要点击"确认并解析"。
+    # 也可能出现其他确认弹窗。循环检测并处理。
+    max_dialog_rounds = 3
+    for round_idx in range(max_dialog_rounds):
+        time.sleep(2)
 
-    # 检查是否发布成功：看是否出现成功提示或页面 URL 变化
+        # 检查是否已跳转（发布成功）
+        current_url = page.evaluate("location.href") or ""
+        if "/answer/" in current_url:
+            answer_id = _extract_answer_id(current_url)
+            logger.info("发布成功，已跳转: %s", current_url)
+            return _success_result(title, current_url, answer_id)
+
+        # 检测并处理确认弹窗（Markdown 解析确认、通用确认等）
+        dialog_result = page.evaluate("""
+        (() => {
+            // 1. Markdown 格式确认弹窗 —— 查找包含"确认并解析"的按钮
+            const allBtns = document.querySelectorAll('button');
+            for (const btn of allBtns) {
+                const text = btn.textContent.trim();
+                if (text.includes('确认并解析') || text.includes('确认解析')) {
+                    if (!btn.disabled) {
+                        btn.click();
+                        return 'clicked_confirm_parse: ' + text;
+                    }
+                }
+            }
+
+            // 2. 通用确认弹窗 —— Modal/Dialog 中的确认按钮
+            const modalBtns = document.querySelectorAll(
+                '.Modal button, .Dialog button, [role="dialog"] button, '
+                + '[class*="modal"] button, [class*="Modal"] button'
+            );
+            for (const btn of modalBtns) {
+                const text = btn.textContent.trim();
+                if ((text === '确认' || text === '确定' || text === '是')
+                    && !btn.disabled) {
+                    btn.click();
+                    return 'clicked_modal_confirm: ' + text;
+                }
+            }
+
+            // 3. Toast 中的可点击确认（知乎有时把确认做在 toast 里）
+            const toasts = document.querySelectorAll(
+                '.Notification, .Toast, [class*="toast"], [class*="Toast"]'
+            );
+            for (const toast of toasts) {
+                const links = toast.querySelectorAll('a, button, span[role="button"]');
+                for (const link of links) {
+                    const text = link.textContent.trim();
+                    if (text.includes('确认') || text.includes('解析')) {
+                        link.click();
+                        return 'clicked_toast_action: ' + text;
+                    }
+                }
+            }
+
+            // 4. 无弹窗需要处理
+            return 'no_dialog';
+        })()
+        """)
+        logger.info("弹窗检测 (round %d): %s", round_idx + 1, dialog_result)
+
+        if dialog_result == "no_dialog":
+            break  # 没有弹窗，继续后续检查
+
+        # 点击了确认按钮，等待知乎处理后可能需要再次点击发布
+        time.sleep(2)
+
+        # 检查是否已跳转
+        current_url = page.evaluate("location.href") or ""
+        if "/answer/" in current_url:
+            answer_id = _extract_answer_id(current_url)
+            logger.info("确认弹窗后发布成功: %s", current_url)
+            return _success_result(title, current_url, answer_id)
+
+        # 确认弹窗后知乎可能需要再次点击发布按钮
+        retry_result = page.evaluate(js_click_submit)
+        logger.info("弹窗确认后重试发布: %s", retry_result)
+
+    # ---------- Step 3: 最终轮询等待发布完成 ----------
+    deadline = time.monotonic() + 10.0
+    while time.monotonic() < deadline:
+        current_url = page.evaluate("location.href") or ""
+        if "/answer/" in current_url:
+            answer_id = _extract_answer_id(current_url)
+            logger.info("发布成功: %s", current_url)
+            return _success_result(title, current_url, answer_id)
+        time.sleep(1)
+
+    # ---------- Step 4: 最终状态检查 ----------
     post_check = page.evaluate("""
     (() => {
-        // 检查是否有错误提示
         const toast = document.querySelector(
             '.Notification, .Toast, [class*=toast], [class*=Toast]');
         if (toast) return 'toast: ' + toast.textContent.trim().substring(0, 100);
-        // 检查 URL 是否包含 answer（发布后会跳转到回答页）
         if (location.href.includes('/answer/')) return 'redirected: ' + location.href;
-        return 'done';
+        return 'url: ' + location.href;
     })()
     """)
-    logger.info("发布后检查: %s", post_check)
+    logger.info("最终发布检查: %s", post_check)
+
+    # 即使没有跳转，也可能已经发布成功（某些情况下知乎不跳转）
+    if "redirected" in (post_check or ""):
+        answer_id = _extract_answer_id(post_check)
+        return _success_result(title, post_check, answer_id)
 
     return {
         "success": True,
@@ -442,3 +540,23 @@ def _click_submit(page, title: str) -> dict:
         "status": "回答已发布",
         "postCheck": post_check,
     }
+
+
+def _extract_answer_id(url_or_text: str) -> str:
+    """从 URL 中提取回答 ID。"""
+    import re
+    match = re.search(r"/answer/(\d+)", url_or_text)
+    return match.group(1) if match else ""
+
+
+def _success_result(title: str, url: str, answer_id: str) -> dict:
+    """构造发布成功的返回结果。"""
+    result = {
+        "success": True,
+        "title": title,
+        "status": "回答已发布",
+        "postCheck": f"redirected: {url}",
+    }
+    if answer_id:
+        result["answerId"] = answer_id
+    return result
