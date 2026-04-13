@@ -339,7 +339,7 @@ def _select_ai_declaration(page) -> None:
     })()
     ''')
 
-    if current == "包含 AI 辅助创作":
+    if "AI 辅助创作" in current or "AI辅助创作" in current:
         logger.info("创作声明已为: %s，无需修改", current)
         return
 
@@ -369,9 +369,10 @@ def _select_ai_declaration(page) -> None:
             ".Select-option, [role='option']"
         );
         for (const opt of options) {
-            if (opt.textContent.trim() === "包含 AI 辅助创作") {
+            const text = opt.textContent.trim();
+            if (text.includes("AI 辅助创作") || text.includes("AI辅助创作")) {
                 opt.click();
-                return "selected";
+                return "selected: " + text;
             }
         }
         return "not_found";
